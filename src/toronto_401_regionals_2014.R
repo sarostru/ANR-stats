@@ -1,7 +1,7 @@
 library("rjson")
 library("ggplot2")
 
-json_file <- "data/401 140628/NRTM.json"
+json_file <- "data/401-140628/NRTM.json"
 json_data <- fromJSON(paste(readLines(json_file), collapse=""))
 
 append_value <- function (L, id, value) {
