@@ -87,6 +87,38 @@ faction_colours <- c('Because We Built It'='darkgreen',
                      'Silhouette'='blue',
                      'Whizzard'='orange')
 
+#Some information about colour pairings
+n <- nrow(player_df)
+
+corp.assign <- function(corp){
+    ifelse(corp == "Making News" | corp == "The World is Yours*", "NBN",
+            ifelse(corp == "Replicating Perfection" | corp == "Personal Evolution" | 
+                       corp == "Tennin Institute" | corp == "Harmony Medtech" | corp == "Nisei Division", "Jinteki",
+                 ifelse(corp == "Engineering the Future" | corp == "NEXT Design" | corp == "Cerebral Imaging", "Haas-Bioroid",
+                         ifelse(corp == "GRNDL" | corp == "Building a Better World" | corp == "Because We Built It", "Weyland", "Unknown"))))
+}
+
+for(i in 1:n){
+    cfaction <- corp.assign(player_df$corp[i])
+    player_df$corpf[i]<- cfaction
+}
+
+run.assign <- function(runner){
+    ifelse(runner == 'Andromeda' | runner == 'Gabriel Santiago' | runner == 'Silhouette' | 
+               runner == 'Ken "Express" Tenma' | runner == 'Iain Stirling', 'Criminal',
+           ifelse(runner == 'Chaos Theory' | runner == 'Kate "Mac" McCaffrey' | 
+                      runner == 'Rielle "Kit" Peddler' | runner == 'Exile', 'Shaper',
+                  ifelse(runner == 'Whizzard' | runner == 'Reina Roja' | runner == 'Noise', 'Anarch', 'Unknown')))
+}
+
+for(i in 1:n){
+    rfaction <- run.assign(player_df$runner[i])
+    player_df$runf[i]<- rfaction
+}
+
+player_df$corpf <- as.factor(player_df$corpf)
+player_df$runf <- as.factor(player_df$runf)
+
 #Plotting the specifics for Regionals 401 Games 2014
 #Jittering some of the ids manually
 identity_df['NEXT Design',]$Average.Prestige <- 2.15
@@ -110,3 +142,8 @@ p2 <- p2 + labs(title = "Toronto 401 Games Regionals 2014\nNumber of Players and
 p2 <- p2 + theme_bw()
 plot(p2)
 dev.off()
+
+# Mosaic Plot to look at interaction between faction choices:
+mosaicplot(~ player_df$corpf + player_df$runf, shade = TRUE, xlab = "Corporation Faction", ylab = "Runner Faction", main = "Faction Choice Combinations at\n the 401 Regionals June 2014")
+
+# Some interesting trends, but nothing substantial (or significant).  More Anarch players brought HB/Weyland, and fewer Jinteki/NBN. Criminals and Shapers mainly concentrated on Jinteki/NBN.
