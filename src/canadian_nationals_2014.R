@@ -34,14 +34,29 @@ add_points <- function(data, player) {
     return(data)
 }
 
+add_flatlines <- function(data, g) {
+  cp1 <- g$player1$corpScore
+  rp1 <- g$player1$runnerScore
+  cp2 <- g$player2$corpScore
+  rp2 <- g$player2$runnerScore
+  g1w <- g$game1WonBy
+  g2w <- g$game2WonBy
+  if ((cp1 == 2) && (cp2 == 2)) {
+    print(paste("Both corps won: game 1 by",g1w,", game 2 by",g2w,"\n"))
+  }
+}
+
 nplayers <- length(json_data$players)
 player_df$corp.prestige <- rep(0,nplayers)
+player_df$corp.flatlined <- rep(0,nplayers)
 player_df$runner.prestige <- rep(0,nplayers)
+player_df$runner.flatlined <- rep(0,nplayers)
 for (r in json_data$rounds) {
     for (g in r) {
         if(!g$eliminationGame) {
             player_df <- add_points(player_df, g$player1)
-            player_df <- add_points(player_df, g$player2) 
+            player_df <- add_points(player_df, g$player2)
+            add_flatlines(data, g)
         }
     } 
 }
@@ -132,6 +147,7 @@ identity_df['Cerebral Imaging',]$Average.Prestige <- 5.85
 
 
 #pdf("image.pdf", width=24, height=10)
+png("plots/Nationals-140816/identities_vs_presitge_all_players.png", width=24, height=10, units="in", res=72)
 p2 <- ggplot(identity_df, aes(as.numeric(Number.of.Players), Average.Prestige, label=rownames(identity_df)))
 p2 <- p2 + scale_x_continuous(breaks=seq(1, 18, 1)) + scale_y_continuous(breaks=seq(0, 12, 1))
 p2 <- p2 + geom_text(aes(colour=Identity, vjust=1.5)) + scale_colour_manual(guide=FALSE, values=faction_colours) 
@@ -140,7 +156,7 @@ p2 <- p2 + labs(title = "Canadian Netrunner Nationals 2014\nAug 16-17 2014, 60 P
                 x="Number of Players", y = "Average Prestige")
 p2 <- p2 + theme_bw()
 plot(p2)
-#dev.off()
+dev.off()
 
 # Mosaic Plot to look at interaction between faction choices:
 #mosaicplot(~ player_df$corpf + player_df$runf, shade = TRUE, xlab = "Corporation Faction", ylab = "Runner Faction", main = "Faction Choice Combinations at\n the 401 Regionals June 2014")
@@ -177,6 +193,7 @@ identity_df['Personal Evolution',]$Average.Prestige <- 5.85
 #identity_df['Cerebral Imaging',]$Average.Prestige <- 5.85
 
 n <- nrow(player_df)
+png("plots/Nationals-140816/identities_vs_presitge_top16.png", width=24, height=10, units="in", res=72)
 p2 <- ggplot(identity_df, aes(as.numeric(Number.of.Players), Average.Prestige, label=rownames(identity_df)))
 p2 <- p2 + scale_x_continuous(breaks=seq(0, 8, 1)) + scale_y_continuous(breaks=seq(0, 12, 1))
 p2 <- p2 + geom_text(aes(colour=Identity, vjust=1.5)) + scale_colour_manual(guide=FALSE, values=faction_colours) 
@@ -185,3 +202,4 @@ p2 <- p2 + labs(title = "Top 16 - Canadian Netrunner Nationals 2014\nAug 16-17 2
                 x="Number of Players", y = "Average Prestige")
 p2 <- p2 + theme_bw()
 plot(p2)
+dev.off()
