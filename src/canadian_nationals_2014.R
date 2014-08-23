@@ -146,3 +146,42 @@ plot(p2)
 #mosaicplot(~ player_df$corpf + player_df$runf, shade = TRUE, xlab = "Corporation Faction", ylab = "Runner Faction", main = "Faction Choice Combinations at\n the 401 Regionals June 2014")
 
 # Some interesting trends, but nothing substantial (or significant).  More Anarch players brought HB/Weyland, and fewer Jinteki/NBN. Criminals and Shapers mainly concentrated on Jinteki/NBN.
+
+#We played a top-16, so lets pull out the stats of the top 16 players
+#TODO:: Should use a function...
+player_df <- head(player_df,16)
+#Gather Tables
+#Corp
+countcp <- tapply(rep(1,length(player_df$corp)), player_df$corp, sum)
+meancp <- tapply(player_df$corp.prestige, player_df$corp, mean)
+
+#Runner
+countrp <- tapply(rep(1,length(player_df$runner)), player_df$runner, sum)
+meanrp <- tapply(player_df$runner.prestige, player_df$runner, mean)
+
+allcounts <- c(countcp,countrp)
+mean.prestige <- c(meancp, meanrp)
+identity_df <- data.frame(allcounts, mean.prestige)
+names(identity_df) <- c("Number.of.Players", "Average.Prestige")
+identity_df$Identity <- row.names(identity_df)
+
+identity_df['Gabriel Santiago',]$Average.Prestige <- 8.30
+identity_df['Whizzard',]$Average.Prestige <- 8.1
+identity_df['Harmony Medtech',]$Average.Prestige <- 7.9
+identity_df['Making News',]$Average.Prestige <- 7.70
+identity_df['Rielle "Kit" Peddler',]$Average.Prestige <- 6.15
+identity_df['Personal Evolution',]$Average.Prestige <- 5.85
+#identity_df['Exile',]$Average.Prestige <- 2.15
+#identity_df['Nasir Meidan',]$Average.Prestige <- 1.85
+#identity_df['The World is Yours*',]$Average.Prestige <- 6.15
+#identity_df['Cerebral Imaging',]$Average.Prestige <- 5.85
+
+n <- nrow(player_df)
+p2 <- ggplot(identity_df, aes(as.numeric(Number.of.Players), Average.Prestige, label=rownames(identity_df)))
+p2 <- p2 + scale_x_continuous(breaks=seq(0, 8, 1)) + scale_y_continuous(breaks=seq(0, 12, 1))
+p2 <- p2 + geom_text(aes(colour=Identity, vjust=1.5)) + scale_colour_manual(guide=FALSE, values=faction_colours) 
+p2 <- p2 + geom_point(aes(colour = Identity))
+p2 <- p2 + labs(title = "Top 16 - Canadian Netrunner Nationals 2014\nAug 16-17 2014, 60 Players with Cards up to Upstalk", 
+                x="Number of Players", y = "Average Prestige")
+p2 <- p2 + theme_bw()
+plot(p2)
