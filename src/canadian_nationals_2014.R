@@ -41,8 +41,33 @@ add_flatlines <- function(data, g) {
   rp2 <- g$player2$runnerScore
   g1w <- g$game1WonBy
   g2w <- g$game2WonBy
-  if ((cp1 == 2) && (cp2 == 2)) {
-    print(paste("Both corps won: game 1 by",g1w,", game 2 by",g2w,"\n"))
+  p1_corp <- data[data$id==g$player1$id,"corp"]
+  p2_corp <- data[data$id==g$player2$id,"corp"]
+  if ((g1w == "ap") && (g2w == "ap")) {
+    return(data)
+  } else if ((cp1 == 2) && (cp2 != 2)) {
+    #Corp 1 won by flatline
+    #Add to player1's corp flatline tally
+    #Add to player2's runner flatline tally
+  } else if ((cp1 != 2) && (cp2 == 2)) {
+    #Corp 1 won by flatline
+    #Add to player2's corp flatline tally
+    #Add to player1's runner flatline tally
+  } else if ((g1w == "flatline") && (g2w == "flatline")) {
+    #Both corp's won by flatline
+    #Add to both tallies
+  } else if ((cp1 == 2) && (cp2 == 2)) {
+    #Special case where the information is missing, have to print it out and decide by hand
+    #what is more likely.
+    print(paste("Both corps won"))
+    print(paste("  game 1 by", g1w))
+    print(paste("  game 2 by", g2w))
+    if ((g1w == "flatline") || (g2w == "flatline")) {
+      print(paste("  player1 Corp:", p1_corp))
+      print(paste("  player2 Corp:", p2_corp))
+      print(paste("  game1: "))
+    }
+    print( paste("Corp"))
   }
 }
 
@@ -56,7 +81,8 @@ for (r in json_data$rounds) {
         if(!g$eliminationGame) {
             player_df <- add_points(player_df, g$player1)
             player_df <- add_points(player_df, g$player2)
-            add_flatlines(data, g)
+            #commented out for now
+            #add_flatlines(player_df, g)
         }
     } 
 }
