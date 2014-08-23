@@ -47,42 +47,64 @@ add_flatlines <- function(data, g) {
     return(data)
   } else if ((cp1 == 2) && (cp2 != 2)) {
     #Corp 1 won by flatline
-    #Add to player1's corp flatline tally
-    #Add to player2's runner flatline tally
+    data[data$id==g$player1$id,"corp.flatline"] <- data[data$id==g$player1$id,"corp.flatline"] + 1
+    data[data$id==g$player2$id,"runner.flatline"] <- data[data$id==g$player2$id,"runner.flatline"] + 1
   } else if ((cp1 != 2) && (cp2 == 2)) {
-    #Corp 1 won by flatline
-    #Add to player2's corp flatline tally
-    #Add to player1's runner flatline tally
+    #Corp 2 won by flatline
+    data[data$id==g$player2$id,"corp.flatline"] <- data[data$id==g$player2$id,"corp.flatline"] + 1
+    data[data$id==g$player1$id,"runner.flatline"] <- data[data$id==g$player1$id,"runner.flatline"] + 1
   } else if ((g1w == "flatline") && (g2w == "flatline")) {
     #Both corp's won by flatline
+    data[data$id==g$player2$id,"corp.flatline"] <- data[data$id==g$player2$id,"corp.flatline"] + 1
+    data[data$id==g$player1$id,"runner.flatline"] <- data[data$id==g$player1$id,"runner.flatline"] + 1
+    data[data$id==g$player1$id,"corp.flatline"] <- data[data$id==g$player1$id,"corp.flatline"] + 1
+    data[data$id==g$player2$id,"runner.flatline"] <- data[data$id==g$player2$id,"runner.flatline"] + 1
     #Add to both tallies
   } else if ((cp1 == 2) && (cp2 == 2)) {
     #Special case where the information is missing, have to print it out and decide by hand
     #what is more likely.
-    print(paste("Both corps won"))
-    print(paste("  game 1 by", g1w))
-    print(paste("  game 2 by", g2w))
-    if ((g1w == "flatline") || (g2w == "flatline")) {
-      print(paste("  player1 Corp:", p1_corp))
-      print(paste("  player2 Corp:", p2_corp))
-      print(paste("  game1: "))
+    #Namely we know 2 corps won, but only one won by flatline, and it's not listed which
+    #I've looked at them and you can't really figure much out.  
+    #I'd have to go ask everyone to give accurate numbers.
+    #New theory, I think game 1 always has player1 running, at least for the first 5 or so I
+    #looked at.
+    if (g1w == "flatline") {
+      #Corp 2 won by flatline (??) This may not be correct.
+      data[data$id==g$player2$id,"corp.flatline"] <- data[data$id==g$player2$id,"corp.flatline"] + 1
+      data[data$id==g$player1$id,"runner.flatline"] <- data[data$id==g$player1$id,"runner.flatline"] + 1
+    } else if (g2w == "flatline") {
+      #Corp 1 won by flatline (??) This may not be correct.
+      data[data$id==g$player1$id,"corp.flatline"] <- data[data$id==g$player1$id,"corp.flatline"] + 1
+      data[data$id==g$player2$id,"runner.flatline"] <- data[data$id==g$player2$id,"runner.flatline"] + 1
     }
-    print( paste("Corp"))
+    
+    
+    #print(paste("Both corps won"))
+    #print(paste("  game 1 by", g1w))
+    #print(paste("  game 2 by", g2w))
+    #if ((g1w == "flatline") || (g2w == "flatline")) {
+    #  print(paste("  player1 Name:", data[data$id==g$player1$id,"name"]))
+    #  print(paste("  player1 Corp:", p1_corp))
+    #  print(paste("  player2 Name:", data[data$id==g$player2$id,"name"]))
+    #  print(paste("  player2 Corp:", p2_corp))
+    #  print(paste("  game1: "))
+    #}
   }
+  return(data)
 }
 
 nplayers <- length(json_data$players)
 player_df$corp.prestige <- rep(0,nplayers)
-player_df$corp.flatlined <- rep(0,nplayers)
+player_df$corp.flatline <- rep(0,nplayers)
 player_df$runner.prestige <- rep(0,nplayers)
-player_df$runner.flatlined <- rep(0,nplayers)
+player_df$runner.flatline <- rep(0,nplayers)
 for (r in json_data$rounds) {
     for (g in r) {
         if(!g$eliminationGame) {
             player_df <- add_points(player_df, g$player1)
             player_df <- add_points(player_df, g$player2)
             #commented out for now
-            #add_flatlines(player_df, g)
+            player_df <- add_flatlines(player_df, g)
         }
     } 
 }
@@ -90,16 +112,19 @@ for (r in json_data$rounds) {
 #Gather Tables
 #Corp
 countcp <- tapply(rep(1,length(player_df$corp)), player_df$corp, sum)
+countcft <- tapply(player_df$corp.flatline, player_df$corp, sum)
 meancp <- tapply(player_df$corp.prestige, player_df$corp, mean)
 
 #Runner
 countrp <- tapply(rep(1,length(player_df$runner)), player_df$runner, sum)
+countrft <- tapply(player_df$runner.flatline, player_df$runner, sum)
 meanrp <- tapply(player_df$runner.prestige, player_df$runner, mean)
 
 allcounts <- c(countcp,countrp)
 mean.prestige <- c(meancp, meanrp)
-identity_df <- data.frame(allcounts, mean.prestige)
-names(identity_df) <- c("Number.of.Players", "Average.Prestige")
+count.flatlines <- c(countcft, countrft)
+identity_df <- data.frame(allcounts, mean.prestige, count.flatlines)
+names(identity_df) <- c("Number.of.Players", "Average.Prestige", "Number.of.Flatlines")
 identity_df$Identity <- row.names(identity_df)
 faction_colours <- c('Because We Built It'='darkgreen',
                      'Building a Better World'='darkgreen',
@@ -134,7 +159,7 @@ faction_colours <- c('Because We Built It'='darkgreen',
 n <- nrow(player_df)
 
 corp.assign <- function(corp){
-    ifelse(corp == "Making News" | corp == "The World is Yours*", "NBN",
+    ifelse(corp == "Near-Earth Hub" | corp == "Making News" | corp == "The World is Yours*", "NBN",
             ifelse(corp == "Replicating Perfection" | corp == "Personal Evolution" | 
                        corp == "Tennin Institute" | corp == "Harmony Medtech" | corp == "Nisei Division", "Jinteki",
                  ifelse(corp == "Engineering the Future" | corp == "NEXT Design" | corp == "Cerebral Imaging", "Haas-Bioroid",
@@ -150,7 +175,7 @@ run.assign <- function(runner){
     ifelse(runner == 'Andromeda' | runner == 'Gabriel Santiago' | runner == 'Silhouette' | 
                runner == 'Ken "Express" Tenma' | runner == 'Iain Stirling', 'Criminal',
            ifelse(runner == 'Chaos Theory' | runner == 'Kate "Mac" McCaffrey' | 
-                      runner == 'Rielle "Kit" Peddler' | runner == 'Exile', 'Shaper',
+                      runner == 'Rielle "Kit" Peddler' | runner == 'Nasir Meidan' | runner == 'Exile', 'Shaper',
                   ifelse(runner == 'Whizzard' | runner == 'Reina Roja' | runner == 'Noise', 'Anarch', 'Unknown')))
 }
 
@@ -166,11 +191,10 @@ player_df$runf <- as.factor(player_df$runf)
 #Jittering some of the ids manually
 identity_df['NEXT Design',]$Average.Prestige <- 4.15
 identity_df['Rielle "Kit" Peddler',]$Average.Prestige <- 3.85
-identity_df['Exile',]$Average.Prestige <- 2.15
-identity_df['Nasir Meidan',]$Average.Prestige <- 1.85
+#identity_df['Exile',]$Average.Prestige <- 2.15
+#identity_df['Nasir Meidan',]$Average.Prestige <- 1.85
 identity_df['The World is Yours*',]$Average.Prestige <- 6.15
 identity_df['Cerebral Imaging',]$Average.Prestige <- 5.85
-
 
 #pdf("image.pdf", width=24, height=10)
 png("plots/Nationals-140816/identities_vs_presitge_all_players.png", width=24, height=10, units="in", res=72)
@@ -191,20 +215,26 @@ dev.off()
 
 #We played a top-16, so lets pull out the stats of the top 16 players
 #TODO:: Should use a function...
+tournament_results <- player_df
+tournament_ids <- identity_df
 player_df <- head(player_df,16)
+
 #Gather Tables
 #Corp
 countcp <- tapply(rep(1,length(player_df$corp)), player_df$corp, sum)
+countcft <- tapply(player_df$corp.flatline, player_df$corp, sum)
 meancp <- tapply(player_df$corp.prestige, player_df$corp, mean)
 
 #Runner
 countrp <- tapply(rep(1,length(player_df$runner)), player_df$runner, sum)
+countrft <- tapply(player_df$runner.flatline, player_df$runner, sum)
 meanrp <- tapply(player_df$runner.prestige, player_df$runner, mean)
 
 allcounts <- c(countcp,countrp)
 mean.prestige <- c(meancp, meanrp)
-identity_df <- data.frame(allcounts, mean.prestige)
-names(identity_df) <- c("Number.of.Players", "Average.Prestige")
+count.flatlines <- c(countcft, countrft)
+identity_df <- data.frame(allcounts, mean.prestige, count.flatlines)
+names(identity_df) <- c("Number.of.Players", "Average.Prestige", "Number.of.Flatlines")
 identity_df$Identity <- row.names(identity_df)
 
 identity_df['Gabriel Santiago',]$Average.Prestige <- 8.30
@@ -229,3 +259,5 @@ p2 <- p2 + labs(title = "Top 16 - Canadian Netrunner Nationals 2014\nAug 16-17 2
 p2 <- p2 + theme_bw()
 plot(p2)
 dev.off()
+top16_results <- player_df
+top16_ids <- identity_df
